@@ -171,9 +171,9 @@ void loop(){
       // -----------------------------
       // [라인 추적 주행]
       // - DriveControl.cpp에서 구현된 라인 추적 함수
-      // - 기본 속도 SPEED_BASE(=140)로 주행
+      // - 기본 속도 SPEED_BASE(=100)로 주행
       // -----------------------------
-      driveLineFollow_detail(ir, SPEED_BASE);
+      // driveLineFollow_detail(ir, SPEED_BASE);
 
       // -----------------------------
       // [도착 판정 ]
@@ -188,7 +188,7 @@ void loop(){
       // [라인 이전값 저장]
       // - 라인 유실이 아닐 때 이전 값 저장
       // -----------------------------
-      if (!(isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R))) {
+      if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
         driveLineFollow_detail(ir, SPEED_BASE);
 
         // 정상일 때만 prev_ir 갱신

@@ -21,27 +21,29 @@ void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed) { // &주소�
   // baseSpeed = 150
   // 직진 : 010
   if (!Lb && Cb && !Rb) { 
-    driveSetRaw(baseSpeed, baseSpeed);
+    driveSetRaw(baseSpeed, baseSpeed); // right , left
   } 
   // 약한 좌회전 : 110
   else if (Lb && Cb && !Rb) {
-    driveSetRaw(baseSpeed-20, baseSpeed+20);
+    driveSetRaw(baseSpeed, baseSpeed-50);
   }
   // 약한 우회전 : 011
   else if (!Lb && Cb && Rb) {
-    driveSetRaw(baseSpeed+20, baseSpeed-20);
+    Serial.println("우회전");
+    driveSetRaw(0, baseSpeed+30);
   }
   // 강한 좌회전 : 100
   else if (Lb && !Cb && !Rb) {
-    driveSetRaw(baseSpeed-70, baseSpeed+70);
+    driveSetRaw(baseSpeed+10, baseSpeed-50);
   }
   // 강한 우회전 : 001
   else if (!Lb && !Cb && Rb) {
-    driveSetRaw(baseSpeed+70, baseSpeed-70);
+    Serial.println("강한우회전");
+    driveSetRaw(0, baseSpeed+30);
   }
   // 교차로 혹은 두꺼운 라인 : 111 
   else if (Lb && Cb && Rb) {
-    driveSetRaw(baseSpeed-70, baseSpeed+70); // 강한
+    driveSetRaw(baseSpeed+10, baseSpeed-50); // 강한 좌회전
   }
   // 검출 안됨 : 000
   // 검출 안되는 상황은 main 안에서 처리됨 -> 이전 속도로 출력해야함
