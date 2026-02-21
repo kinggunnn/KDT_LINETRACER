@@ -41,7 +41,7 @@ void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed) { // &주소�
   }
   // 교차로 혹은 두꺼운 라인 : 111 
   else if (Lb && Cb && Rb) {
-    driveSetRaw(baseSpeed-70, baseSpeed+70); // 강한 좌회전
+    driveSetRaw(baseSpeed-70, baseSpeed+70); // 강한
   }
   // 검출 안됨 : 000
   // 검출 안되는 상황은 main 안에서 처리됨 -> 이전 속도로 출력해야함
