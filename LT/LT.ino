@@ -98,11 +98,15 @@ void loop(){
   // [루프 주기 제한]
   // - 50ms마다 한 번만 실행되도록 제한
   // - ArrivalDetector.update()에 deltaMs=50을 넣는 근거가 됨
+  // - 50ms니깐 "1000/50=20" 즉 1초에 20번 실행됨 => 그러나 루프 한번이 몇초 걸리는지 모르기에 20번 이하일 확률이 높음. 확인해봐야함.
   // ---------------------------------------------------
   static unsigned long lastLoopMs = 0;
   unsigned long now = millis();
   if(now - lastLoopMs < LOOP_PERIOD_MS) return;
   lastLoopMs = now;
+
+  // 서범 : 러닝 타임 확인하기 위한 코드
+  //unsigned long t0 = micros();
 
   // ---------------------------------------------------
   // [센서 읽기]
@@ -159,9 +163,9 @@ void loop(){
       // -----------------------------
       // [라인 추적 주행]
       // - DriveControl.cpp에서 구현된 라인 추적 함수
-      // - 기본 속도 SPEED_BASE(=120)로 주행
+      // - 기본 속도 SPEED_BASE(=140)로 주행
       // -----------------------------
-      driveLineFollow(ir, SPEED_BASE);
+      driveLineFollow_detail(ir, SPEED_BASE);
 
       // -----------------------------
       // [도착 판정 ]
@@ -335,4 +339,13 @@ void loop(){
     Serial.println(curState);
     prevState = curState;
   }
+
+  // 서범 : 러닝타임 확인 용
+  // unsigned long t1 = micros();
+  // unsigned long runTime = t1 - t0;
+
+  // Serial.print("러닝타임 = ");
+  // Serial.println(runTime);
+  
+
 }

@@ -133,7 +133,7 @@ void driveSetRaw(int rightSpeed, int leftSpeed){
     - 단순한 if-else 기반 보정 방식
   =====================================================
 */
-void driveLineFollow(const IRSample& ir, uint8_t baseSpeed){
+void driveLineFollow(const IRSample& ir, uint8_t baseSpeed){ // &주소로 값을 받되, const로 수정은 불가하게 작성
 
   if(isBlack(ir.C)){
     // 중앙이 라인 위 → 직진
@@ -172,7 +172,7 @@ void driveLineFollow(const IRSample& ir, uint8_t baseSpeed){
 */
 IRSample readIR(){
   IRSample s;
-  s.L = digitalRead(L_Line);
+  s.L = digitalRead(L_Line); // 0 = 흰색 / 1 = 검정색
   s.C = digitalRead(C_Line);
   s.R = digitalRead(R_Line);
   return s;

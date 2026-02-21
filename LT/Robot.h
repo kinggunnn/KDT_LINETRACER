@@ -37,7 +37,7 @@ struct IRSample{
 };
 
 // ---------------- 속도 상수 ----------------
-constexpr uint8_t SPEED_BASE = 100;
+constexpr uint8_t SPEED_BASE = 140;
 constexpr uint8_t SPEED_SLOW = 90;
 constexpr uint8_t SPEED_ROTATE = 150;
 
@@ -57,7 +57,8 @@ enum class FlowState{
 void driveInit();
 void driveStop();
 void driveSetRaw(int rightSpeed, int leftSpeed);
-void driveLineFollow(const IRSample& ir, uint8_t baseSpeed);
+void driveLineFollow(const IRSample& ir, uint8_t baseSpeed); // 기본 직/좌/우 구현
+void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed); // 세분화된 좌좌/좌/직/우/우우 구현
 
 IRSample readIR();
 long readUltrasonicCm(uint16_t timeoutUs = 25000);
