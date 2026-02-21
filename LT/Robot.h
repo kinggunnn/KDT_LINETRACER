@@ -26,7 +26,7 @@
 #define R_Line A3
 
 // ---------------- 라인 기준 ----------------
-constexpr uint8_t LINE_BLACK = LOW;
+constexpr uint8_t LINE_BLACK = HIGH;
 inline bool isBlack(uint8_t v){ return v == LINE_BLACK; }
 inline bool isWhite(uint8_t v){ return v != LINE_BLACK; }
 
@@ -37,8 +37,8 @@ struct IRSample{
 };
 
 // ---------------- 속도 상수 ----------------
-constexpr uint8_t SPEED_BASE = 100;
-constexpr uint8_t SPEED_SLOW = 90;
+constexpr uint8_t SPEED_BASE = 140;
+constexpr uint8_t SPEED_SLOW = 100;
 constexpr uint8_t SPEED_ROTATE = 150;
 
 // ---------------- 상태 ----------------

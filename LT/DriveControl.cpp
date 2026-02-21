@@ -139,6 +139,12 @@ void driveLineFollow(const IRSample& ir, uint8_t baseSpeed){
     // 중앙이 라인 위 → 직진
     driveSetRaw(baseSpeed,baseSpeed);
   }
+  else if (isBlack(ir.C)&&isBlack(ir.L)){
+    driveSetRaw(baseSpeed,baseSpeed-20);
+  }
+  else if (isBlack(ir.C)&&isBlack(ir.R)){
+    driveSetRaw(baseSpeed-20,baseSpeed);
+  }
   else if(isBlack(ir.L)){
     // 왼쪽이 라인 위 → 왼쪽으로 붙어있음 → 우측 더 빠르게
     driveSetRaw(baseSpeed+40, baseSpeed-40);
