@@ -13,7 +13,7 @@
 // 매개변수 : IR 센서값(구조체), 기본 설정 스피드
 // return 값 : 없음(바로 조향 진행)
 //====================================================
-void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed) {
+void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed) { // &주소로 값을 받되, const로 수정은 불가하게 작성
   bool Lb = isBlack(ir.L);
   bool Cb = isBlack(ir.C);
   bool Rb = isBlack(ir.R);
