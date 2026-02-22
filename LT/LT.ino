@@ -94,19 +94,19 @@ void setup(){
 }
 
 void loop(){
-  driveSetRaw(150,150);   // 양쪽 모터 전진
-}
+  // ---------------------------------------------------
+  // [루프 주기 제한]
+  // - 50ms마다 한 번만 실행되도록 제한
+  // - ArrivalDetector.update()에 deltaMs=50을 넣는 근거가 됨
+  // - 50ms니깐 "1000/50=20" 즉 1초에 20번 실행됨 => 그러나 루프 한번이 몇초 걸리는지 모르기에 20번 이하일 확률이 높음. 확인해봐야함.
+  // ---------------------------------------------------
+  static unsigned long lastLoopMs = 0;
+  unsigned long now = millis();
+  if(now - lastLoopMs < LOOP_PERIOD_MS) return;
+  lastLoopMs = now;
 
-// void loop(){
-//   // ---------------------------------------------------
-//   // [루프 주기 제한]
-//   // - 50ms마다 한 번만 실행되도록 제한
-//   // - ArrivalDetector.update()에 deltaMs=50을 넣는 근거가 됨
-//   // ---------------------------------------------------
-//   static unsigned long lastLoopMs = 0;
-//   unsigned long now = millis();
-//   if(now - lastLoopMs < LOOP_PERIOD_MS) return;
-//   lastLoopMs = now;
+  // 서범 : 러닝 타임 확인하기 위한 코드
+  //unsigned long t0 = micros();
 
 //   // ---------------------------------------------------
 //   // [센서 읽기]
@@ -168,12 +168,12 @@ void loop(){
 //         Serial.println(blackCount);
 //       }
 
-//       // -----------------------------
-//       // [라인 추적 주행]
-//       // - DriveControl.cpp에서 구현된 라인 추적 함수
-//       // - 기본 속도 SPEED_BASE(=140)로 주행
-//       // -----------------------------
-//       driveLineFollow(ir, SPEED_BASE);
+      // -----------------------------
+      // [라인 추적 주행]
+      // - DriveControl.cpp에서 구현된 라인 추적 함수
+      // - 기본 속도 SPEED_BASE(=140)로 주행
+      // -----------------------------
+      driveLineFollow_detail(ir, SPEED_BASE);
 
 //       // -----------------------------
 //       // [도착 판정 ]
@@ -336,15 +336,24 @@ void loop(){
 //       break;
 //   }
 
-//   // ---------------------------------------------------
-//   // [디버깅: 상태 변경 순간만 출력]
-//   // - prevState와 다를 때만 출력해서 시리얼 스팸 방지
-//   // ---------------------------------------------------
-//   static int prevState = -1;
-//   int curState = (int)state;
-//   if(curState != prevState){
-//     Serial.print("STATE CHANGED => ");
-//     Serial.println(curState);
-//     prevState = curState;
-//   }
-// }
+  // ---------------------------------------------------
+  // [디버깅: 상태 변경 순간만 출력]
+  // - prevState와 다를 때만 출력해서 시리얼 스팸 방지
+  // ---------------------------------------------------
+  static int prevState = -1;
+  int curState = (int)state;
+  if(curState != prevState){
+    Serial.print("STATE CHANGED => ");
+    Serial.println(curState);
+    prevState = curState;
+  }
+
+  // 서범 : 러닝타임 확인 용
+  // unsigned long t1 = micros();
+  // unsigned long runTime = t1 - t0;
+
+  // Serial.print("러닝타임 = ");
+  // Serial.println(runTime);
+  
+
+}
