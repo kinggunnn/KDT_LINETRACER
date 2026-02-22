@@ -1,0 +1,6 @@
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+*.sqlite
+ProjectSettings.json

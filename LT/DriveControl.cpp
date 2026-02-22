@@ -198,8 +198,9 @@ IRSample readIR(){
     -1 : timeout(신호 없음)
   =====================================================
 */
-long readUltrasonicCm(uint16_t timeoutUs){
-  digitalWrite(trigPin,LOW);
+// 기본 20ms로 측정(40cm일떄 시간 40 × 58 ≈ 2320 µs)
+long readUltrasonicCm(uint16_t timeoutUs = 20000){
+  digitalWrite(trigPin,LOW); // HIGH 전 LOW 안정화
   delayMicroseconds(2);
 
   digitalWrite(trigPin,HIGH);
