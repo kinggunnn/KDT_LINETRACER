@@ -204,7 +204,8 @@ void loop(){
       // [장애물]
       // - 30cm 이내면 장애물 상태로 진입(감속/정지 판단은 OBSTACLE에서)
       // -----------------------------
-      if(dist > 0 && dist <= 10){
+      // if(dist > 0 && dist <= 10){
+      if (isObstacleStable(dist)) {
         state = FlowState::OBSTACLE;
       }
 
