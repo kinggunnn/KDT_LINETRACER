@@ -63,4 +63,7 @@ IRSample readIR();
 long readUltrasonicCm(uint16_t timeoutUs = 25000);
 
 void spiral_search(int L, int C, int R);  // LineSearch에서 구현
+
+bool isObstacleStable(long dist);   // Obstacle.cpp에서 구현
+
 #endif
