@@ -36,6 +36,10 @@ struct IRSample{
   uint8_t R;
 };
 
+// 서범 : 이전값 유지하기위한
+static IRSample prev_ir;      // 마지막 정상 IR
+static bool hasPrevIr = false;
+
 // ---------------- 속도 상수 ----------------
 constexpr uint8_t SPEED_BASE = 140;
 constexpr uint8_t SPEED_SLOW = 100;

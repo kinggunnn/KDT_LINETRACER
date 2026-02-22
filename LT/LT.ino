@@ -118,6 +118,11 @@ void loop(){
   // - state 값에 따라 실행하는 동작이 달라짐
   // ---------------------------------------------------
   switch(state){
+  // ---------------------------------------------------
+  // [상태머신]
+  // - state 값에 따라 실행하는 동작이 달라짐
+  // ---------------------------------------------------
+  switch(state){
 
     // =================================================
     // 0) 출발 대기
@@ -128,7 +133,51 @@ void loop(){
         state = FlowState::LINE_TRACE;
       }
       break;
+    // =================================================
+    // 0) 출발 대기
+    // - 중앙 센서가 라인을 감지하면(=검정 LOW) 출발
+    // =================================================
+    case FlowState::WAIT_START:
+      if(isBlack(ir.C)){
+        state = FlowState::LINE_TRACE;
+      }
+      break;
 
+    // =================================================
+    // 1) 라인 추적 주행
+    // - driveLineFollow(): 기본 주행 및 좌/우 보정
+    // - 라인 유실 200ms 이상이면 SEARCH_ROTATE로 전환
+    // - 장애물 감지되면 OBSTACLE로 전환
+    // - 도착(ArrivalDetector true)이면 ENDING으로 전환
+    // =================================================
+    case FlowState::LINE_TRACE:
+    {
+      Serial.print("STATE=");
+      Serial.print((int)state);
+      Serial.print(" IR=");
+      Serial.print(ir.L);Serial.print(",");
+      Serial.print(ir.C);Serial.print(",");
+      Serial.print(ir.R);
+      Serial.print(" dist=");
+      Serial.println(dist);
+      // -----------------------------
+      // [IR 디버깅 출력]
+      // - 200ms마다 한 번씩 IR 값과 blackCount 출력
+      // - blackCount: 검정으로 판정된 센서 개수(0~3)
+      // -----------------------------
+      static unsigned long t = 0;
+      //아래 if문은 디버깅용으러 넣어놨ㅅ므다~
+      if(millis() - t >= 200){
+        t = millis();
+        Serial.print("IR=");
+        Serial.print(ir.L); Serial.print(",");
+        Serial.print(ir.C); Serial.print(",");
+        Serial.print(ir.R);
+        Serial.print(" blackCount=");
+        int blackCount =
+          (isBlack(ir.L)?1:0) + (isBlack(ir.C)?1:0) + (isBlack(ir.R)?1:0);
+        Serial.println(blackCount);
+      }
     // =================================================
     // 1) 라인 추적 주행
     // - driveLineFollow(): 기본 주행 및 좌/우 보정
@@ -223,6 +272,14 @@ void loop(){
       break;
     }
 
+    // =================================================
+    // 2) 라인 탐색 - 제자리 회전
+    // - 좌/우 바퀴를 반대방향으로 돌려 제자리 회전
+    // - ROTATE_TIME(임시 2000ms)을 1회전으로 보고 rotateCount 증가
+    // - 2회전 초과(rotateCount>2)면 SEARCH_SPIRAL로 전환
+    // - 회전 중 라인 재획득하면 LINE_TRACE로 복귀
+    // =================================================
+    case FlowState::SEARCH_ROTATE:
     // =================================================
     // 2) 라인 탐색 - 제자리 회전
     // - 좌/우 바퀴를 반대방향으로 돌려 제자리 회전
