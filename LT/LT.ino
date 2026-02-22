@@ -278,14 +278,23 @@ void loop(){
     // - 10cm < dist <= 30cm : 감속 주행
     // =================================================
     case FlowState::OBSTACLE:
+      // Serial.println("장애물 상태로 IN 완료");
+
+      // 장애물 사라짐
+      if(dist < 0 || dist > 30){
+        // Serial.println("장애물 해제 → LINE_TRACE");
+        state = FlowState::LINE_TRACE;
+        break;
+      }
 
       if(dist <= 10){
+        // Serial.println("장애물->일시정지");
         driveStop();
         stopStart = now;
         state = FlowState::STOP_HOLD;
       }
       else{
-        // 감속 주행
+        // Serial.println("장애물->감속");
         driveLineFollow(ir, SPEED_SLOW);
       }
 
