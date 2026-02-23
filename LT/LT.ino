@@ -131,41 +131,7 @@ void loop(){
       }
       break;
 
-    // =================================================
-    // 1) 라인 추적 주행
-    // - driveLineFollow(): 기본 주행 및 좌/우 보정
-    // - 라인 유실 200ms 이상이면 SEARCH_ROTATE로 전환
-    // - 장애물 감지되면 OBSTACLE로 전환
-    // - 도착(ArrivalDetector true)이면 ENDING으로 전환
-    // =================================================
-    case FlowState::LINE_TRACE:
-    {
-      Serial.print("STATE=");
-      Serial.print((int)state);
-      Serial.print(" IR=");
-      Serial.print(ir.L);Serial.print(",");
-      Serial.print(ir.C);Serial.print(",");
-      Serial.print(ir.R);
-      Serial.print(" dist=");
-      Serial.println(dist);
-      // -----------------------------
-      // [IR 디버깅 출력]
-      // - 200ms마다 한 번씩 IR 값과 blackCount 출력
-      // - blackCount: 검정으로 판정된 센서 개수(0~3)
-      // -----------------------------
-      static unsigned long t = 0;
-      //아래 if문은 디버깅용으러 넣어놨ㅅ므다~
-      if(millis() - t >= 200){
-        t = millis();
-        Serial.print("IR=");
-        Serial.print(ir.L); Serial.print(",");
-        Serial.print(ir.C); Serial.print(",");
-        Serial.print(ir.R);
-        Serial.print(" blackCount=");
-        int blackCount =
-          (isBlack(ir.L)?1:0) + (isBlack(ir.C)?1:0) + (isBlack(ir.R)?1:0);
-        Serial.println(blackCount);
-      }
+    
     // =================================================
     // 1) 라인 추적 주행
     // - driveLineFollow(): 기본 주행 및 좌/우 보정
