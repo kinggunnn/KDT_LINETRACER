@@ -10,26 +10,18 @@
 
 bool isObstacleStable(long dist)
 {
-    const int THRESHOLD = 30;   // cm
+    const int THRESHOLD = 30;   // cm 이하 = 장애물
     const int REQUIRED = 3;     // 연속 횟수
-
     static int count = 0;
 
     if (dist > 0 && dist <= THRESHOLD) {
         count++;
 
-        // Serial.print("거리: ");
-        // Serial.println(dist);
-
-        // Serial.print("장애물 카운트: ");
-        // Serial.println(count);
-
-        if (count >= REQUIRED){
-            // Serial.println("장애물로 인한 정지");
+        if (count >= REQUIRED) {
             count = 0;
             return true;
         }
-    }
+    } 
     else {
         count = 0;
     }
