@@ -219,3 +219,51 @@ long readUltrasonicCm(uint16_t timeoutUs){
 
   return duration/58; // us → cm 변환
 }
+
+
+//====================================================
+// 작업자 : 임진효
+// 최신화 : 2026_02_23
+// 용도 : 센서값 3회 연속된 값만 받아오기
+//   - 3회 동일값 들어와야 값 확정(노이즈 필터)
+//====================================================
+// ====================================================
+// [StableDigitalFilter 사용법]
+// ----------------------------------------------------
+// 목적:
+//   - IR 센서처럼 디지털 입력이 튀는(노이즈) 경우
+//     "같은 값이 N번 연속 들어왔을 때만" 그 값을 확정해서 사용한다.
+// 구성:
+//   - StableDigitalFilter : 핀 1개에 대한 필터 상태 저장용 구조체
+//   - readStableDigital(pin, filter, required)
+//       * pin      : digitalRead 할 핀 번호
+//       * filter   : 해당 핀 전용 필터 상태(센서마다 1개 필요)
+//       * required : 몇 번 연속 동일값이면 확정할지(기본 3)
+//
+// 반환값:
+//   - LOW 또는 HIGH : 안정화된 확정값
+//   - -1            : 아직 안정화되지 않음(초기 몇 번은 -1 가능)
+//
+// 예시(3개 센서 안정화): ....... 주행중에는 안쓰는게 나을수도,,? 걍 바퀴속도 올리면 저절로 씹힐거라서
+//   static StableDigitalFilter fl, fc, fr;   <<<함수 쓸 cpp파일 내부 상단에 선언
+//   int L = readStableDigital(L_Line, fl, 3);    <<<L센서 안정화된 값
+//   int C = readStableDigital(C_Line, fc, 3);    <<<C센서 안정화된 값
+//   int R = readStableDigital(R_Line, fr, 3);    <<<C센서 안정화된 값
+// ====================================================
+
+int readStableDigital(uint8_t pin, StableDigitalFilter &f, uint8_t required /*=3*/) {
+  int raw = digitalRead(pin);
+
+  if (raw == f.lastRaw) {
+    if (f.stableCount < 255) f.stableCount++;
+  } else {
+    f.stableCount = 0;
+  }
+
+  if (f.stableCount >= required) {
+    f.confirmed = raw;
+  }
+
+  f.lastRaw = raw;
+  return f.confirmed; // -1이면 아직 안정값 없음
+}
