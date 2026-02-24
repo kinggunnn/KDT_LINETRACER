@@ -86,6 +86,30 @@ void setup(){
   // ---------------------------------------------------
   driveInit();
 
+  //디버깅용 
+  Serial.println("Waiting for line...");
+
+  if(!acquireLineInSetup(10000)) {
+    Serial.println("Line not found. STOP.");
+    while(1);
+  }
+
+  //디버깅용 
+  Serial.println("Calibrating 180 turn...");
+
+  //디버깅용 
+  if(!calibrateTurn180InSetup(2, 8000)) {
+    Serial.println("Calibration failed.");
+    while(1);
+  }
+
+  //디버깅용 
+  Serial.print("Calibrated 180 time = ");
+
+  ///180도 회전용 !!!! 리턴값~
+  Serial.println(getCalibrated180());
+
+
   // ---------------------------------------------------
   // [도착 판정 초기화]
   // - 이전 테스트 값이 남는 것을 방지
@@ -268,18 +292,13 @@ void loop(){
     // =================================================
     case FlowState::SEARCH_SPIRAL:
 
-      // 스파이럴 탐색(내부에서 속도차로 회전반경 확장)
-      spiral_search(ir.L, ir.C, ir.R);
+      // 사각형 탐색 수행
+      square_search(ir.L, ir.C, ir.R);
 
-      // 라인 재획득 시 복귀
-      if(!(isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R))){
+      // 라인 재획득 시 즉시 복귀
+      // (검정 = HIGH 기준이면)
+      if(ir.L == HIGH || ir.C == HIGH || ir.R == HIGH){
         state = FlowState::LINE_TRACE;
-      }
-
-      // 스파이럴 제한시간 초과 -> 이탈 모드(정지 유지)
-      if(now - spiralStart >= SPIRAL_MAX){
-        Serial.println("GO ENDING: SPIRAL TIMEOUT");
-        state = FlowState::ENDING;
       }
 
       break;

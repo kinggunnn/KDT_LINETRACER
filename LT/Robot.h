@@ -57,6 +57,26 @@ enum class FlowState{
   ENDING
 };
 
+
+// ===============================
+// 세개씩 데이터 받아오는 보정용 구조체 선언
+// 담당자 : 임진효
+// ===============================
+struct StableDigitalFilter {
+  int lastRaw = -1;
+  uint8_t stableCount = 0;
+  int confirmed = -1;
+};
+
+// ===============================
+// Setup용 보정 함수 선언
+// 담당자 : 임진효
+// ===============================
+bool acquireLineInSetup(unsigned long timeoutMs);
+bool calibrateTurn180InSetup(int repeatCount, unsigned long timeoutMs);
+int readStableDigital(uint8_t pin, StableDigitalFilter &f, uint8_t required = 3);
+unsigned long getCalibrated180();
+
 // ---------------- DriveControl API ----------------
 void driveInit();
 void driveStop();
@@ -66,6 +86,10 @@ void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed); // 세분화
 
 IRSample readIR();
 long readUltrasonicCm(uint16_t timeoutUs = 25000);
+bool isObstacleStable(long dist);
+//사각회전탐색
+void square_search(int L, int C, int R);
+
 
 void spiral_search(int L, int C, int R);  // LineSearch에서 구현
 #endif
