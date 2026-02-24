@@ -60,22 +60,21 @@ bool calibrateTurn180InSetup(int repeatCount, unsigned long timeoutMs)
 
   for (int round = 0; round < repeatCount; round++)
   {
-    // 라운드 시작 시점에서 중앙 센서 안정값 확보
-    unsigned long start = millis();
-    unsigned long firstEdge = 0;
-    unsigned long secondEdge = 0;
+    unsigned long start = millis();       // 라운드 전체 타임아웃 기준
+    unsigned long firstEdge = 0;          // BLACK->WHITE (라인 이탈)
+    unsigned long secondEdge = 0;         // WHITE->BLACK (라인 재진입)
 
     int prevStable = -1;
 
-    // prevStable을 안정값으로 만들기 위한 루프(짧게)
+    // 0) 안정값 하나 확보(최대 500ms)
     while (millis() - start < 500) {
       int v = readStableDigital(C_Line, fc, 3);
       if (v != -1) { prevStable = v; break; }
       delay(5);
     }
-    if (prevStable == -1) return false; // 센서 안정값 자체를 못 얻음
+    if (prevStable == -1) return false;
 
-    // 회전 시작
+    // 1) 회전 시작
     unsigned long rotateStart = millis();
 
     while (millis() - rotateStart < timeoutMs)
@@ -85,13 +84,13 @@ bool calibrateTurn180InSetup(int repeatCount, unsigned long timeoutMs)
       int stable = readStableDigital(C_Line, fc, 3);
       if (stable == -1) continue;
 
-      // BLACK → WHITE (첫 경계)
-      if (prevStable == LOW && stable == HIGH && firstEdge == 0) {
+      // [시작점] BLACK -> WHITE (HIGH -> LOW) : 라인에서 벗어나는 순간
+      if (prevStable == HIGH && stable == LOW && firstEdge == 0) {
         firstEdge = millis();
       }
 
-      // WHITE → BLACK (두 번째 경계) : 한 바퀴 돌아서 라인 재진입했다고 가정
-      if (prevStable == HIGH && stable == LOW && firstEdge != 0) {
+      // [종료점] WHITE -> BLACK (LOW -> HIGH) : 라인에 다시 올라타는 순간
+      if (prevStable == LOW && stable == HIGH && firstEdge != 0) {
         secondEdge = millis();
         break;
       }
@@ -101,21 +100,36 @@ bool calibrateTurn180InSetup(int repeatCount, unsigned long timeoutMs)
 
     driveStop();
 
+    // 타임아웃/실패 처리
     if (firstEdge == 0 || secondEdge == 0) {
       return false;
     }
 
-    // 180도 시간 = (회전 시작 → 첫 경계까지)
-    unsigned long measured180 = firstEdge - rotateStart;
+    // 2) 한 바퀴 시간(라인 이탈->재진입)을 이용해 180도 시간 계산
+    //    라인 두께가 두꺼워도 "경계~경계"는 상대적으로 안정적임
+    unsigned long fullTurnMs = secondEdge - firstEdge;
+    unsigned long measured180 = fullTurnMs / 2;
+
     measuredSum += measured180;
 
-    delay(500); // 다음 측정 전 안정화
+    delay(500); // 다음 라운드 전 안정화(센서 튐 방지)
   }
 
+  // 3) 2회 평균
   g_turn180_ms = measuredSum / (unsigned long)repeatCount;
+
+  // 4) (선택) 캘리브레이션 끝나고 라인 위(HIGH)로 복귀 시도: 출발 막힘 방지
+  unsigned long fixStart = millis();
+  const unsigned long FIX_TIMEOUT = 2000;
+  while (millis() - fixStart < FIX_TIMEOUT) {
+    int stableC = readStableDigital(C_Line, fc, 3);
+    if (stableC == HIGH) break;
+    driveSetRaw(SPEED_ROTATE, -SPEED_ROTATE);
+  }
+  driveStop();
+
   return true;
 }
-
 unsigned long getCalibrated180()
 {
   return g_turn180_ms;

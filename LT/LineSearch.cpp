@@ -161,7 +161,7 @@ void square_search(int L, int C, int R)
       phase = 0;
       phaseStartMs = now;
 
-      // 직진 길이 증가 (최대 3배까지 늘리라고 했으니 1→2→3→3→3...)
+      // 직진 길이 증가 
       if (straightMul < 3) straightMul++;
     }
   }
