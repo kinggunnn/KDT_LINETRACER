@@ -21,32 +21,39 @@ void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed) { // &주소�
   // baseSpeed = 150
   // 직진 : 010
   if (!Lb && Cb && !Rb) { 
+    Serial.println("직진");
     driveSetRaw(baseSpeed, baseSpeed); // right , left
   } 
   // 약한 좌회전 : 110
   else if (Lb && Cb && !Rb) {
-    driveSetRaw(baseSpeed, baseSpeed-50);
+    Serial.println("좌회전");
+    driveSetRaw(baseSpeed+50, 0);
   }
   // 약한 우회전 : 011
   else if (!Lb && Cb && Rb) {
     Serial.println("우회전");
-    driveSetRaw(0, baseSpeed+30);
+    driveSetRaw(0, baseSpeed+50);
   }
   // 강한 좌회전 : 100
   else if (Lb && !Cb && !Rb) {
-    driveSetRaw(baseSpeed+10, baseSpeed-50);
+    Serial.println("강한 좌회전");
+    driveSetRaw(baseSpeed+50, -baseSpeed);
   }
   // 강한 우회전 : 001
   else if (!Lb && !Cb && Rb) {
-    Serial.println("강한우회전");
-    driveSetRaw(0, baseSpeed+30);
+    Serial.println("강한 우회전");
+    driveSetRaw(-baseSpeed, baseSpeed+50);
   }
-  // 교차로 혹은 두꺼운 라인 : 111 
-  else if (Lb && Cb && Rb) {
-    driveSetRaw(baseSpeed+10, baseSpeed-50); // 강한 좌회전
+  else {
+    Serial.println("현재는 테스트 주행 중. 111 혹은 000 값이 처리되어서 직진 수행.");
+    driveSetRaw(baseSpeed, baseSpeed);
   }
+  // // 교차로 혹은 두꺼운 라인 : 111  -> 상태로 뺴기
+  // else if (Lb && Cb && Rb) {
+  //   driveSetRaw(baseSpeed+10, baseSpeed-50); // 강한 좌회전
+  // }
   // 검출 안됨 : 000
-  // 검출 안되는 상황은 main 안에서 처리됨 -> 이전 속도로 출력해야함
+  // 검출 안되는 상황은 main 안에서 처리됨 -> 이전 속도로 출력됨
 }
 
 

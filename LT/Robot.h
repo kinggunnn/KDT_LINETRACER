@@ -24,6 +24,7 @@
 #define L_Line A5
 #define C_Line A4
 #define R_Line A3
+#define FC_Line A2
 
 // ---------------- 라인 기준 ----------------
 constexpr uint8_t LINE_BLACK = HIGH;
@@ -34,6 +35,7 @@ struct IRSample{
   uint8_t L;
   uint8_t C;
   uint8_t R;
+  uint8_t FC;
 };
 
 // 서범 : 이전값 유지하기위한
@@ -41,7 +43,7 @@ static IRSample prev_ir;      // 마지막 정상 IR
 static bool hasPrevIr = false;
 
 // ---------------- 속도 상수 ----------------
-constexpr uint8_t SPEED_BASE = 100;
+constexpr uint8_t SPEED_BASE = 140;
 constexpr uint8_t SPEED_SLOW = 100;
 constexpr uint8_t SPEED_ROTATE = 150;
 
@@ -54,7 +56,10 @@ enum class FlowState{
   OBSTACLE,
   STOP_HOLD,
   ESCAPE,
-  ENDING
+  ENDING,
+
+  CROSS_TURN_LEFT,
+  CROSS_GO_STRAIGHT
 };
 
 // ---------------- DriveControl API ----------------

@@ -181,6 +181,7 @@ IRSample readIR(){
   s.L = digitalRead(L_Line); // 0 = 흰색 / 1 = 검정색
   s.C = digitalRead(C_Line);
   s.R = digitalRead(R_Line);
+  s.FC = digitalRead(FC_Line);
   return s;
 }
 

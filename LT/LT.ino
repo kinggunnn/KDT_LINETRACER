@@ -18,14 +18,16 @@
 // -----------------------------------------------------
 // [상태 변수]
 // - state: 현재 로봇이 어떤 모드로 동작 중인지 나타냄
-//   WAIT_START    : 출발 대기(중앙 센서가 라인 감지하면 출발)
-//   LINE_TRACE    : 라인 추적 주행
-//   SEARCH_ROTATE : 라인 유실 시 제자리 회전 탐색
-//   SEARCH_SPIRAL : 회전 탐색 실패 후 스파이럴 탐색
-//   OBSTACLE      : 장애물 거리 판단(감속/정지)
-//   STOP_HOLD     : 장애물 너무 가까울 때 2초 정지
-//   ESCAPE        : 탈출(제자리 회전하면서 라인 재획득)
-//   ENDING        : 도착/이탈/종료 -> 정지 유지
+//   WAIT_START         : 출발 대기(중앙 센서가 라인 감지하면 출발)
+//   LINE_TRACE         : 라인 추적 주행
+//   SEARCH_ROTATE      : 라인 유실 시 제자리 회전 탐색
+//   SEARCH_SPIRAL      : 회전 탐색 실패 후 스파이럴 탐색
+//   OBSTACLE           : 장애물 거리 판단(감속/정지)
+//   STOP_HOLD          : 장애물 너무 가까울 때 2초 정지
+//   ESCAPE             : 탈출(제자리 회전하면서 라인 재획득)
+//   ENDING             : 도착/이탈/종료 -> 정지 유지
+//   CROSS_TURN_LEFT    : 교차로에서 좌회전 하는 경우
+//   CROSS_GO_STRAIGHT  : 교차로에서 직진하는 경우
 // -----------------------------------------------------
 static FlowState state = FlowState::WAIT_START;
 
@@ -50,6 +52,11 @@ static unsigned long spiralStart = 0;
 static unsigned long stopStart   = 0;
 static int rotateCount = 0;
 
+// 서범 : 0224
+static unsigned long turnStart = 0;
+static uint8_t cnt111 = 0;    // 111 연속 카운트
+static uint8_t cnt011F = 0;   // (011 + F=1) 연속 카운트
+
 // ---------------- 시간 상수 ----------------
 // LOOP_PERIOD_MS : loop 주기(50ms). deltaMs를 고정값으로 update에 넣기 위해 사용
 // LOST_TRIGGER   : 라인 유실이 200ms 이상 지속되면 탐색 모드로 전환
@@ -61,6 +68,16 @@ constexpr unsigned long LOST_TRIGGER   = 200;
 constexpr unsigned long ROTATE_TIME    = 2000;   // ★ 1회전 = 2000ms (임시값, 조정 필요)
 constexpr unsigned long SPIRAL_MAX     = 10000;  // 10초 후 이탈
 constexpr unsigned long STOP_TIME      = 2000;   // 장애물 정지 2초
+
+// 서범 : 0224
+constexpr unsigned long TURN_FORWARD_MS = 100; // 회전 시 안정 전진
+constexpr unsigned long TURN_TIMEOUT_MS = 1200; // 좌회전 안전 타임아웃
+constexpr unsigned long STRAIGHT_PASS_MS = 200; // ㅏ자에서 직진 통과 시간
+constexpr uint8_t HIT_111 = 3;
+constexpr uint8_t HIT_011F = 2;
+// 분기 처리 후 재판정 방지(락아웃) - 루프/연속 오판 방지
+static unsigned long crossLockUntil = 0;
+constexpr unsigned long CROSS_LOCK_MS = 350;
 
 void setup(){
   // ---------------------------------------------------
@@ -77,6 +94,7 @@ void setup(){
   pinMode(L_Line,INPUT);
   pinMode(C_Line,INPUT);
   pinMode(R_Line,INPUT);
+  pinMode(FC_Line, INPUT);
   pinMode(trigPin,OUTPUT);
   pinMode(echoPin,INPUT);
 
@@ -110,7 +128,7 @@ void loop(){
 
   // ---------------------------------------------------
   // [센서 읽기]
-  // - ir.L/C/R : 라인센서 상태(LOW=검정, HIGH=흰색)
+  // - ir.L/C/R : 라인센서 상태(LOW=흰색, HIGH=검정색)
   // - dist     : 초음파 거리(cm), 실패시 -1
   // ---------------------------------------------------
   IRSample ir = readIR();
@@ -141,32 +159,32 @@ void loop(){
     // =================================================
     case FlowState::LINE_TRACE:
     {
-      Serial.print("STATE=");
-      Serial.print((int)state);
-      Serial.print(" IR=");
-      Serial.print(ir.L);Serial.print(",");
-      Serial.print(ir.C);Serial.print(",");
-      Serial.print(ir.R);
-      Serial.print(" dist=");
-      Serial.println(dist);
+      // Serial.print("STATE=");
+      // Serial.print((int)state);
+      // Serial.print(" IR=");
+      // Serial.print(ir.L);Serial.print(",");
+      // Serial.print(ir.C);Serial.print(",");
+      // Serial.print(ir.R);
+      // Serial.print(" dist=");
+      // Serial.println(dist);
       // -----------------------------
       // [IR 디버깅 출력]
       // - 200ms마다 한 번씩 IR 값과 blackCount 출력
       // - blackCount: 검정으로 판정된 센서 개수(0~3)
       // -----------------------------
-      static unsigned long t = 0;
+      //static unsigned long t = 0;
       //아래 if문은 디버깅용으러 넣어놨ㅅ므다~
-      if(millis() - t >= 200){
-        t = millis();
-        Serial.print("IR=");
-        Serial.print(ir.L); Serial.print(",");
-        Serial.print(ir.C); Serial.print(",");
-        Serial.print(ir.R);
-        Serial.print(" blackCount=");
-        int blackCount =
-          (isBlack(ir.L)?1:0) + (isBlack(ir.C)?1:0) + (isBlack(ir.R)?1:0);
-        Serial.println(blackCount);
-      }
+      // if(millis() - t >= 200){
+      //   t = millis();
+      //   Serial.print("IR=");
+      //   Serial.print(ir.L); Serial.print(",");
+      //   Serial.print(ir.C); Serial.print(",");
+      //   Serial.print(ir.R);
+      //   Serial.print(" blackCount=");
+      //   int blackCount =
+      //     (isBlack(ir.L)?1:0) + (isBlack(ir.C)?1:0) + (isBlack(ir.R)?1:0);
+      //   Serial.println(blackCount);
+      // }
 
       // -----------------------------
       // [라인 추적 주행]
@@ -184,12 +202,68 @@ void loop(){
         break;
       }
 
+
+      if (now < crossLockUntil){
+        cnt111 = 0;
+        cnt011F = 0;
+      } else{
+        // 111 카운트
+        if (isBlack(ir.L) && isBlack(ir.C) && isBlack(ir.R)) cnt111++;
+        else cnt111 = 0;
+
+        // 011 + F 카운트
+        if (isBlack(ir.FC) && !isBlack(ir.L) && isBlack(ir.C) && isBlack(ir.R)) cnt011F++;
+        else cnt011F = 0;
+
+        // --------------------------------------
+        // [규칙 1]
+        // - 111이면 FC 상관없이 무조건 좌회전
+        // --------------------------------------
+        if (cnt111 >= HIT_111){ // 3번 이상 반복되면 실행
+          cnt111 = 0;
+          cnt011F = 0;
+          crossLockUntil = now + CROSS_LOCK_MS;
+
+          turnStart = now;
+          state = FlowState::CROSS_TURN_LEFT;
+
+          // 출력되는 값 확인용
+          Serial.print("DECIDE(111)->LEFT  L,C,R,FC=");
+          Serial.print(ir.L); Serial.print(",");
+          Serial.print(ir.C); Serial.print(",");
+          Serial.print(ir.R); Serial.print(",");
+          Serial.println(ir.FC);
+          break; // switch(state)에서 LINE_TRACE case 종료
+        }
+
+        // -------------------------------------------
+        // [규칙 2]
+        // - 011 + 전방감지(FC=1)이면 (ㅏ자형태) -> 직진
+        // -------------------------------------------
+        if (cnt011F >= HIT_011F) {
+          cnt111 = 0;
+          cnt011F = 0;
+          crossLockUntil = now + CROSS_LOCK_MS;
+
+          turnStart = now;
+          state = FlowState::CROSS_GO_STRAIGHT;
+
+          Serial.print("DECIDE(011F)->STRAIGHT  L,C,R,FC=");
+          Serial.print(ir.L); Serial.print(",");
+          Serial.print(ir.C); Serial.print(",");
+          Serial.print(ir.R); Serial.print(",");
+          Serial.println(ir.FC);
+
+          break; // switch(state)에서 LINE_TRACE case 종료
+        }
+      }
+
       // -----------------------------
       // [라인 이전값 저장]
       // - 라인 유실이 아닐 때 이전 값 저장
       // -----------------------------
       if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
-        driveLineFollow_detail(ir, SPEED_BASE);
+        driveLineFollow_detail(ir, SPEED_BASE); // 100
 
         // 정상일 때만 prev_ir 갱신
         prev_ir = ir;
@@ -242,6 +316,55 @@ void loop(){
       //   break;
       // }
 
+      break;
+    }
+
+    // ==============================================================
+    // 서범 : 0224
+    // 111일 때 -> 좌회전 (왼쪽을 우선시 하는 로직)
+    // ==============================================================
+    case FlowState::CROSS_TURN_LEFT:
+    {
+      unsigned long dt = now - turnStart;
+
+      // 111 판단 됐을 때, 100ms 정도 살짝 전진
+      if (dt < TURN_FORWARD_MS) {
+        driveSetRaw(SPEED_BASE, SPEED_BASE); 
+        break; // 약간 직진 하고 break걸어서 아래 코드 실행 안되게 방지
+      }
+
+      // 강한 좌회전
+      driveSetRaw(SPEED_BASE+50, 50); // 오른쪽은 기본 스피스+50 , 왼쪽 바퀴는 거의 꺼져있는 값(50) 
+
+      // 중앙 검정색 + 모두 111이 아니면 => 재흭득하면 종료
+      if (isBlack(ir.C) && !(isBlack(ir.L) && isBlack(ir.C) && isBlack(ir.R))){
+        state = FlowState::LINE_TRACE;
+        break;
+      }
+
+      // 혹시나 무한 루프에 빠질 수도 있으니깐 처리해놓기 -> 1.2초 지나면 돌아서 가기
+      if (dt > TURN_TIMEOUT_MS){
+        rotateStart = now;
+        rotateCount = 0;
+        state = FlowState::SEARCH_ROTATE;
+      }
+      break;
+    }
+
+    // ==============================================================
+    // 서범 : 0224
+    // 011 때 -> 직진 (ㅏ자 형태에서 직진하는 로직)
+    // ==============================================================
+    case FlowState::CROSS_GO_STRAIGHT:
+    {
+       unsigned long dt = now - turnStart;
+
+       driveSetRaw(SPEED_BASE, SPEED_BASE); // 직진
+
+      // 교차로 통과 시간(200ms로 가정)만큼 직진 후 복귀
+      if (dt > STRAIGHT_PASS_MS) {
+        state = FlowState::LINE_TRACE;
+      }
       break;
     }
 
@@ -317,7 +440,7 @@ void loop(){
       }
       else{
         // 감속 주행
-        driveLineFollow(ir, SPEED_SLOW);
+        driveLineFollow_detail(ir, SPEED_SLOW);
       }
 
       break;
