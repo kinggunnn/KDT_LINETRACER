@@ -24,6 +24,7 @@
 #define L_Line A5
 #define C_Line A4
 #define R_Line A3
+#define FC_Line A2
 
 #define LED_PIN 2
 #define BUZZER_PIN 7
@@ -37,6 +38,7 @@ struct IRSample{
   uint8_t L;
   uint8_t C;
   uint8_t R;
+  uint8_t FC;
 };
 
 // 서범 : 이전값 유지하기위한
@@ -57,7 +59,10 @@ enum class FlowState{
   OBSTACLE,
   STOP_HOLD,
   ESCAPE,
-  ENDING
+  ENDING,
+
+  CROSS_TURN_LEFT,
+  CROSS_GO_STRAIGHT
 };
 
 
