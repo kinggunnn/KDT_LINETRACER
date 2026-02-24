@@ -25,8 +25,12 @@
 #define C_Line A4
 #define R_Line A3
 
+// 김유진 - Ending 구현 (2026.02.22)
+#define LED_PIN 2
+#define BUZZER_PIN 7
+
 // ---------------- 라인 기준 ----------------
-constexpr uint8_t LINE_BLACK = LOW;
+constexpr uint8_t LINE_BLACK = HIGH;
 inline bool isBlack(uint8_t v){ return v == LINE_BLACK; }
 inline bool isWhite(uint8_t v){ return v != LINE_BLACK; }
 

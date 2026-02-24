@@ -1,6 +1,6 @@
 #include "Robot.h"
 #include "Arrival.h"
-
+#include "Ending.h"
 /*
   =====================================================
   [main.ino 역할]
@@ -35,6 +35,14 @@ static FlowState state = FlowState::WAIT_START;
 // - 내부에서 "패턴이 일정 시간 유지"를 카운트한다.
 // -----------------------------------------------------
 ArrivalDetector arrival;
+
+// -----------------------------------------------------
+// [Ending 제어 객체]
+// - EndingController::start()가 호출되면 엔딩 시퀀스(감속 -> 정지 유지)가 시작
+// - EndingController::update(deltaMs)는 엔딩 단계 진행을 수행 / 내부에서 경과 시간을 누적해 단계 전환을 관리
+// - EndingController::isFinished()가 true를 반환하면 엔딩 동작 완료로 판단
+// -----------------------------------------------------
+EndingController ending;
 
 // -----------------------------------------------------
 // [시간/카운터 변수]
@@ -166,8 +174,10 @@ void loop(){
       // -----------------------------
       // [도착 판정 ]
        // -----------------------------
+      bool arrived = arrival.update(ir, LOOP_PERIOD_MS);
       if(arrival.update(ir, LOOP_PERIOD_MS)){
         Serial.println("GO ENDING: ARRIVAL");
+        ending.start();                         // 김유진 - Ending 구현 (2026.02.23)
         state = FlowState::ENDING;
         break;
       }
@@ -203,12 +213,13 @@ void loop(){
       // [도착 판정 2회차 (중복)]
       // 님들 여기 잘 보고 적어야함~~ 혹시 너무 자주 멈추면 여기 주석처리하세요~
       //   여기서 또 호출하면 도착 판정이 "빨라질 수 있음"
-            // -----------------------------
-      if(arrival.update(ir, LOOP_PERIOD_MS)){
-        Serial.println("GO ENDING: ARRIVAL");
-        state = FlowState::ENDING;
-        break;
-      }
+      // 주석 처리 무조건 해야합니다! - // 김유진 - Ending 구현 (2026.02.23)
+      // -----------------------------
+      // if(arrival.update(ir, LOOP_PERIOD_MS)){
+      //   Serial.println("GO ENDING: ARRIVAL");
+      //   state = FlowState::ENDING;
+      //   break;
+      // }
 
       break;
     }
@@ -266,6 +277,7 @@ void loop(){
       // 스파이럴 제한시간 초과 -> 이탈 모드(정지 유지)
       if(now - spiralStart >= SPIRAL_MAX){
         Serial.println("GO ENDING: SPIRAL TIMEOUT");
+        ending.start();              
         state = FlowState::ENDING;
       }
 
@@ -318,9 +330,14 @@ void loop(){
     // 7) ENDING
     // - 도착/이탈 등 종료 상태
     // - 모터 정지 유지
+    // // 김유진 - Ending 구현 (2026.02.23)
     // =================================================
     case FlowState::ENDING:
-      driveStop();
+      ending.update(LOOP_PERIOD_MS);
+
+      if(ending.isFinished()){
+        driveStop();   // 기존 함수 사용
+      }
       break;
   }
 

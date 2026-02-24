@@ -6,10 +6,12 @@
 //   - IR 센서 3개 중 2개 이상이 검정 상태가
 //     300ms 이상 유지되면 도착 확정
 //====================================================
+
 #ifndef ARRIVAL_H
 #define ARRIVAL_H
 
 #include "Robot.h"
+
 
 class ArrivalDetector {
 public:
