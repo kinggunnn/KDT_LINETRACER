@@ -10,16 +10,18 @@
 
 bool isObstacleStable(long dist)
 {
-    const int THRESHOLD = 30;   // cm
-    const int REQUIRED = 3;    // 연속 횟수
-
+    const int THRESHOLD = 30;   // cm 이하 = 장애물
+    const int REQUIRED = 3;     // 연속 횟수
     static int count = 0;
 
     if (dist > 0 && dist <= THRESHOLD) {
         count++;
-        if (count >= REQUIRED)
+
+        if (count >= REQUIRED) {
+            count = 0;
             return true;
-    }
+        }
+    } 
     else {
         count = 0;
     }

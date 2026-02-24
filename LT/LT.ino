@@ -1,6 +1,7 @@
 #include "Robot.h"
 #include "Arrival.h"
-
+#include "Ending.h"
+#include <Servo.h>
 /*
   =====================================================
   [main.ino 역할]
@@ -37,6 +38,14 @@ static FlowState state = FlowState::WAIT_START;
 ArrivalDetector arrival;
 
 // -----------------------------------------------------
+// [Ending 제어 객체]
+// - EndingController::start()가 호출되면 엔딩 시퀀스(감속 -> 정지 유지)가 시작
+// - EndingController::update(deltaMs)는 엔딩 단계 진행을 수행 / 내부에서 경과 시간을 누적해 단계 전환을 관리
+// - EndingController::isFinished()가 true를 반환하면 엔딩 동작 완료로 판단
+// -----------------------------------------------------
+EndingController ending;
+
+// -----------------------------------------------------
 // [시간/카운터 변수]
 // - lostStart   : 라인 유실(흰,흰,흰)이 시작된 시각 기록
 // - rotateStart : 회전 탐색(SEARCH_ROTATE)에서 회전 1바퀴 시간 카운트용 기준 시각
@@ -49,6 +58,19 @@ static unsigned long rotateStart = 0;
 static unsigned long spiralStart = 0;
 static unsigned long stopStart   = 0;
 static int rotateCount = 0;
+
+
+Servo myServo;
+// ---------------- 장애물 관련 변수들 ----------------
+// 장애물 감지 -> 정지/회피 -> 라인복귀 과정에서 
+// 상태가 불필요하게 반복 진입/무한 루프 방지 용도
+// ex) ESCAPE 직후에도 장애물을 보고 있어서  
+//     LINE_TRACE 진입 후, 다시 OBSTACLE로 재진입
+static bool obstacleMode = false; //현재 장애물 처리 루틴에 들어와 있는 상태를 표시
+static unsigned long obstacleCooldown = 0; //장애물 회피가 끝난 시각 기록.  ESCAPE 직후 같은 장애물 다시 감지 방지
+constexpr unsigned long COOLDOWN = 2000;  // 2초 재감지 방지
+static unsigned long escapeStart = 0; //ESCAPE 상태가 시작된 시각(ms)을 기록
+
 
 // ---------------- 시간 상수 ----------------
 // LOOP_PERIOD_MS : loop 주기(50ms). deltaMs를 고정값으로 update에 넣기 위해 사용
@@ -79,7 +101,12 @@ void setup(){
   pinMode(R_Line,INPUT);
   pinMode(trigPin,OUTPUT);
   pinMode(echoPin,INPUT);
-
+  /* ---------------------------------------------------
+  // 2026.02.24
+  // [ 초기 서보모터 각도 고정 ]
+  * --------------------------------------------------- */
+  myServo.attach(2);   // 서보 연결 핀
+  myServo.write(90);   // 시작 각도 (0~180)
   // ---------------------------------------------------
   // [모터 초기화]
   // - DriveControl.cpp의 driveInit()에서 모터 핀 OUTPUT 설정 + 정지 초기화
@@ -116,7 +143,7 @@ void loop(){
  
   // ---------------------------------------------------
   // [상태머신]
-  // - state 값에 따라 실행하는 동작이 달라짐
+  // - st가 시작된 시각(ms)을 기록ate 값에 따라 실행하는 동작이 달라짐
   // ---------------------------------------------------
   switch(state){
 
@@ -178,8 +205,10 @@ void loop(){
       // -----------------------------
       // [도착 판정 ]
        // -----------------------------
+      bool arrived = arrival.update(ir, LOOP_PERIOD_MS);
       if(arrival.update(ir, LOOP_PERIOD_MS)){
         Serial.println("GO ENDING: ARRIVAL");
+        ending.start();
         state = FlowState::ENDING;
         break;
       }
@@ -206,22 +235,16 @@ void loop(){
       // -----------------------------
       // [장애물]
       // - 30cm 이내면 장애물 상태로 진입(감속/정지 판단은 OBSTACLE에서)
+      // 초음파 거리값(dist)이 일정 범위 이내에서 연속 3회 이상 안정적으로 감지되면 장애물로 판단
       // -----------------------------
-      // if(dist > 0 && dist <= 10){
-      if (isObstacleStable(dist)) {
-        state = FlowState::OBSTACLE;
+      if(!obstacleMode &&
+        isObstacleStable(dist) &&
+        now - obstacleCooldown > COOLDOWN)
+      {
+          obstacleMode = true;  // 장애물 처리 모드 진입
+          state = FlowState::OBSTACLE; // 장애물 처리 상태로 전환
       }
-
-      // -----------------------------
-      // [도착 판정 2회차 (중복)]
-      // 님들 여기 잘 보고 적어야함~~ 혹시 너무 자주 멈추면 여기 주석처리하세요~
-      //   여기서 또 호출하면 도착 판정이 "빨라질 수 있음"
-            // -----------------------------
-      // if(arrival.update(ir, LOOP_PERIOD_MS)){
-      //   Serial.println("GO ENDING: ARRIVAL");
-      //   state = FlowState::ENDING;
-      //   break;
-      // }
+    
 
       break;
     }
@@ -279,6 +302,7 @@ void loop(){
       // 스파이럴 제한시간 초과 -> 이탈 모드(정지 유지)
       if(now - spiralStart >= SPIRAL_MAX){
         Serial.println("GO ENDING: SPIRAL TIMEOUT");
+        ending.start();              
         state = FlowState::ENDING;
       }
 
@@ -291,13 +315,31 @@ void loop(){
     // =================================================
     case FlowState::OBSTACLE:
 
+      // [장애물 해제 조건]
+      // - 초음파 거리값이 30cm 초과이면 장애물이 사라졌다고 판단
+      // - obstacleMode를 false로 내려서 다시 장애물 감지가 가능
+      if(dist > 30){
+        obstacleMode = false; // 장애물 처리 종료
+        state = FlowState::LINE_TRACE;  // 정상 라인트레이싱으로 복귀
+        break;
+      }
+
+      // [매우 가까운 장애물]
+      // - 즉시 모터 정지 후 STOP_HOLD 상태로 전환
+      // - stopStart에 현재 시각을 저장하여
+      //   정지 유지 시간(STOP_TIME) 계산에 사용
       if(dist <= 10){
-        driveStop();
-        stopStart = now;
+        // Serial.println("장애물->일시정지");
+        driveStop();  // 모터 완전 정지
+        stopStart = now;  // 정지 시작 시각 기록
         state = FlowState::STOP_HOLD;
       }
+      // [중간 거리 장애물]
+      // - 10cm < dist <= 30cm 구간
+      // - 완전 정지 대신 감속 주행으로 대응
+      // - 장애물과 일정 거리를 유지하면서 라인 추적 지속
       else{
-        // 감속 주행
+        // Serial.println("장애물->감속");
         driveLineFollow(ir, SPEED_SLOW);
       }
 
@@ -307,24 +349,39 @@ void loop(){
     // 5) 장애물 정지 유지(2초)
     // - STOP_TIME(2초) 지나면 ESCAPE로 전환
     // =================================================
+    // [정지 유지 → 탈출 모드 전환]
+    // - STOP_TIME(2초) 동안 정지 상태 유지
+    // - 이후 ESCAPE 상태로 전환하여 장애물 회피 동작 수행
+    // - escapeStart는 ESCAPE 시작 시각으로,
+    //   최소 회전 시간 보장을 위해 사용된다.
     case FlowState::STOP_HOLD:
-
       if(now - stopStart >= STOP_TIME){
-        state = FlowState::ESCAPE;
-      }
-      break;
+      escapeStart = now; 
+      state = FlowState::ESCAPE;
+    }
+    break;
 
     // =================================================
     // 6) 탈출 모드
     // - 제자리 회전하며 라인을 다시 찾음
     // - 라인 재획득하면 LINE_TRACE로 복귀
     // =================================================
+    // [탈출 완료 조건]
+    // 1) 최소 회전 시간(800ms) 경과
+    //    → 노이즈로 인한 조기 복귀 방지
+    // 2) 중앙 IR 센서가 라인을 감지
+    //    → 실제로 라인을 다시 찾았을 때만 복귀
     case FlowState::ESCAPE:
+      // [탈출 모드: 제자리 회전]
+      // - 좌/우 바퀴를 반대 방향으로 구동하여 제자리 회전
+      // - 장애물을 피하면서 라인을 재탐색한다.
       driveSetRaw(SPEED_ROTATE, -SPEED_ROTATE);
 
-      if(!(isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R))){
+      if(now - escapeStart > 800 && isBlack(ir.C)){
+        obstacleMode = false;   // 장애물 처리 모드 해제
+        obstacleCooldown = now; // 재감지 쿨다운 시작
         state = FlowState::LINE_TRACE;
-      }
+      } 
       break;
 
     // =================================================
@@ -333,7 +390,11 @@ void loop(){
     // - 모터 정지 유지
     // =================================================
     case FlowState::ENDING:
-      driveStop();
+      ending.update(LOOP_PERIOD_MS);
+
+      if(ending.isFinished()){
+        driveStop();   // 기존 함수 사용
+      }
       break;
   }
 

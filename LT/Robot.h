@@ -25,6 +25,9 @@
 #define C_Line A4
 #define R_Line A3
 
+#define LED_PIN 2
+#define BUZZER_PIN 7
+
 // ---------------- 라인 기준 ----------------
 constexpr uint8_t LINE_BLACK = HIGH;
 inline bool isBlack(uint8_t v){ return v == LINE_BLACK; }
@@ -68,4 +71,6 @@ IRSample readIR();
 long readUltrasonicCm(uint16_t timeoutUs = 25000);
 
 void spiral_search(int L, int C, int R);  // LineSearch에서 구현
+
+bool isObstacleStable(long dist);   // Obstacle.cpp에서 구현
 #endif
