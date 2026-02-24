@@ -16,11 +16,14 @@ bool ArrivalDetector::update(const IRSample& ir, unsigned long deltaMs){
     // 도착 패턴: 검정 - 흰색 - 검정
     if(isBlack(ir.L) && isWhite(ir.C) && isBlack(ir.R)){
         holdTime += deltaMs;
+        Serial.print("[ARR] holdTime=");
+        Serial.println(holdTime);
         if(holdTime >= 300){
             return true;
         }
     }
     else{
+        if (holdTime > 0) Serial.println("[ARR] reset");
         holdTime = 0;
     }
 

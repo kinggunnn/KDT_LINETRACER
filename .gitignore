@@ -1,6 +1,12 @@
-# Visual Studio
 .vs/
 *.VC.db
-*.VC.opendb
-*.sqlite
-ProjectSettings.json
+*.VC.db-shm
+*.VC.db-wal
+*.db
+*.db-shm
+*.db-wal
+*.vsidx
+Debug/
+Release/
+x64/
+x86/

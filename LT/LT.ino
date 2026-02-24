@@ -250,7 +250,7 @@ void loop(){
       bool arrived = arrival.update(ir, LOOP_PERIOD_MS);
       if(arrival.update(ir, LOOP_PERIOD_MS)){
         Serial.println("GO ENDING: ARRIVAL");
-        ending.start();
+        ending.start();                         // 김유진 - Ending 구현 (2026.02.23)
         state = FlowState::ENDING;
         break;
       }
@@ -541,6 +541,7 @@ void loop(){
     // 7) ENDING
     // - 도착/이탈 등 종료 상태
     // - 모터 정지 유지
+    // // 김유진 - Ending 구현 (2026.02.23)
     // =================================================
     case FlowState::ENDING:
       ending.update(LOOP_PERIOD_MS);
