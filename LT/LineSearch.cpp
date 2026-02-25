@@ -11,15 +11,15 @@
 
 #include "Robot.h"
 
-constexpr unsigned long SEARCH_LIMIT_MS = 15000; // 15초
+constexpr unsigned long SEARCH_LIMIT_MS = 10000; // 10초
 // constexpr int SPEED_MIN = 80;
 // constexpr int DIFF_MAX = 150;
 // constexpr int DIFF_MIN = 40;
 
-constexpr unsigned long STRAIGHT_BASE_MS = 250;   // 직진 기본 시간(1배) ★ 현장에서 조정
+constexpr unsigned long STRAIGHT_BASE_MS = 500;   // 직진 기본 시간(1배)
 constexpr unsigned long TURN_90_MS = 0;           // ★ 90도 회전 시간 = 보정값으로 채움
 
-constexpr int SEARCH_SPEED = 120;                 // 탐색 직진 속도 ★ 현장에서 조정
+constexpr int SEARCH_SPEED = 120;                 // 탐색 직진 속도
 
 // void spiral_search(int L, int C, int R){
 
@@ -127,16 +127,10 @@ void square_search(int L, int C, int R)
   }
 
   // ---- 90도 회전 시간 결정 ----
-  // 보정한 180도 시간이 있으면 그 절반을 90도로 사용
-  // (getCalibrated180()은 네가 만든 Calibrate.cpp 함수)
-  unsigned long t90 = 0;
-  // getCalibrated180()이 프로젝트에 없으면 아래 줄 주석 처리하고
-  // TURN_90_MS를 직접 상수로 넣어도 됨.
+    unsigned long t90 = 0;
   t90 = getCalibrated180() / 2;
 
   if (t90 == 0) {
-    // 보정값이 없거나 0이면 안전하게 정지(또는 임시값 사용)
-    // 여기서 임시값 쓰고 싶으면 t90=XXX; 로 바꿔도 됨.
     driveStop();
     return;
   }

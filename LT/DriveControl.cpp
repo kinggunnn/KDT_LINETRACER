@@ -109,8 +109,8 @@ void driveStop(){
   =====================================================
 */
 void driveSetRaw(int rightSpeed, int leftSpeed){
-  setMotor(RightMotor_1_pin,RightMotor_2_pin,RightMotor_E_pin,rightSpeed);
-  setMotor(LeftMotor_3_pin,LeftMotor_4_pin,LeftMotor_E_pin,leftSpeed-5);
+  setMotor(RightMotor_1_pin,RightMotor_2_pin,RightMotor_E_pin,rightSpeed-5);
+  setMotor(LeftMotor_3_pin,LeftMotor_4_pin,LeftMotor_E_pin,leftSpeed);
 }
 
 /*
@@ -180,39 +180,42 @@ void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed) { // &주소�
   bool Rb = isBlack(ir.R);
 
   // baseSpeed = 150
-  // 직진 : 010
+  //직진 : 010
   if (!Lb && Cb && !Rb) { 
     driveSetRaw(baseSpeed, baseSpeed); // right , left
   } 
-  // 약한 좌회전 : 110
-  else if ((Lb && Cb && !Rb)||(Lb && !Cb && !Rb)) {
-    driveSetRaw(baseSpeed+20, 0);
-  }
-  // 약한 우회전 : 011
-  else if ((!Lb && Cb && Rb)||(!Lb && !Cb && Rb)) {
-    driveSetRaw(0, baseSpeed+20);}
   // // 약한 좌회전 : 110
-  // else if (Lb && Cb && !Rb) {
-  //   driveSetRaw(baseSpeed+20, baseSpeed);
+  // else if ((Lb && Cb && !Rb)||(Lb && !Cb && !Rb)) {
+  //   driveSetRaw(baseSpeed+20, 0);
   // }
   // // 약한 우회전 : 011
-  // else if (!Lb && Cb && Rb) {
-  //   driveSetRaw(baseSpeed, baseSpeed+20);
-  // }
-  // // 강한 좌회전 : 100
-  // else if (Lb && !Cb && !Rb) {
-  //   driveSetRaw(baseSpeed+80, 0);
-  // }
-  // // 강한 우회전 : 001
-  // else if (!Lb && !Cb && Rb) {
-  //   driveSetRaw(0, baseSpeed+80);
-  // }
+  // else if ((!Lb && Cb && Rb)||(!Lb && !Cb && Rb)) {
+  //   driveSetRaw(0, baseSpeed+20);}
+
+  // 약한 좌회전 : 110
+  else if (Lb && Cb && !Rb) {
+    driveSetRaw(baseSpeed+23, 0);
+  }
+  // 약한 우회전 : 011
+  else if (!Lb && Cb && Rb) {
+    driveSetRaw(0, baseSpeed+23);
+  }
+  // 강한 좌회전 : 100
+  else if (Lb && !Cb && !Rb) {
+    driveSetRaw(baseSpeed, -baseSpeed);
+  }
+  // 강한 우회전 : 001
+  else if (!Lb && !Cb && Rb) {
+    driveSetRaw(-baseSpeed, baseSpeed);
+  }
+  ///000은 main에서 처리
   // else if(!Lb && !Cb && !Rb){
   //   driveStop();
   // }
-  else{
-    driveSetRaw(baseSpeed, baseSpeed);
-  }
+  //111은 main에서 처리
+  // else{
+  //   driveSetRaw(baseSpeed, baseSpeed);
+  // }
   // // 교차로 혹은 두꺼운 라인 : 111  -> 상태로 뺴기
   // else if (Lb && Cb && Rb) {
   //   driveSetRaw(baseSpeed+10, baseSpeed-50); // 강한 좌회전
