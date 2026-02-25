@@ -248,7 +248,7 @@ void loop(){
       // [도착 판정 ]
        // -----------------------------
       bool arrived = arrival.update(ir, LOOP_PERIOD_MS);
-      if(arrival.update(ir, LOOP_PERIOD_MS)){
+      if(arrived){
         Serial.println("GO ENDING: ARRIVAL");
         ending.start();                         // 김유진 - Ending 구현 (2026.02.23)
         state = FlowState::ENDING;
@@ -316,6 +316,7 @@ void loop(){
       // - 라인 유실이 아닐 때 이전 값 저장
       // -----------------------------
       if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
+        //driveLineFollow_detail(ir, SPEED_BASE); // 100
         driveLineFollow_detail(ir, SPEED_BASE); // 100
 
         // 정상일 때만 prev_ir 갱신
