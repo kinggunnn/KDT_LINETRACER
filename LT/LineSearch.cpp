@@ -82,80 +82,68 @@ constexpr int SEARCH_SPEED = 120;                 // 탐색 직진 속도
 */
 void square_search(int L, int C, int R)
 {
-  // 라인 유실 조건: 모두 흰색(LOW)
+  // 라인 유실: 모두 흰색(LOW)  (검정=HIGH 기준 유지)
   const bool lineLost = (L == LOW && C == LOW && R == LOW);
 
-  // 탐색 상태 유지용 static
   static bool searching = false;
   static unsigned long searchStartMs = 0;
 
-  // 단계 상태
-  // phase=0: 직진 구간
-  // phase=1: 90도 회전 구간
-  static uint8_t phase = 0;
+  static uint8_t phase = 0; // 0=직진, 1=회전
   static unsigned long phaseStartMs = 0;
-
-  // 직진 시간 배수(1,2,3,...)
   static uint8_t straightMul = 1;
 
-  // 라인 잡히면 즉시 탐색 종료(상태 리셋)
+  static unsigned long t90 = 0;
+
   if (!lineLost) {
     searching = false;
     searchStartMs = 0;
     phase = 0;
     phaseStartMs = 0;
     straightMul = 1;
+    t90 = 0;
     return;
   }
 
-  // 탐색 시작 초기화
   if (!searching) {
     searching = true;
     searchStartMs = millis();
     phase = 0;
-    phaseStartMs = millis();
+    phaseStartMs = searchStartMs;
     straightMul = 1;
+
+    // 캘리브레이션 기반 90도 시간(회전 속도는 반드시 캘리브레이션과 동일하게 쓸 것)
+    t90 = getCalibrated180() / 2;
+    if (t90 < 150) t90 = 150; // 너무 짧으면 무조건 찔끔이라 하한 보험
   }
 
   unsigned long now = millis();
 
-  // 전체 제한 시간 초과 -> 정지 및 종료
   if (now - searchStartMs >= SEARCH_LIMIT_MS) {
     driveStop();
     searching = false;
     return;
   }
 
-  // ---- 90도 회전 시간 결정 ----
-    unsigned long t90 = 0;
-  t90 = getCalibrated180() / 2;
-
-  if (t90 == 0) {
-    driveStop();
-    return;
-  }
-
-  // ---- 사각형 탐색 FSM ----
   if (phase == 0) {
-    // [직진 구간]
+    // 직진
     driveSetRaw(SEARCH_SPEED, SEARCH_SPEED);
 
     unsigned long straightTime = STRAIGHT_BASE_MS * (unsigned long)straightMul;
-
     if (now - phaseStartMs >= straightTime) {
       phase = 1;
       phaseStartMs = now;
     }
-  }
-  else {
-    // [90도 회전 구간] (제자리 회전)
-    driveSetRaw(SEARCH_SPEED, -SEARCH_SPEED);
+  } else {
+    // 90도 회전 (캘리브레이션과 같은 회전 속도 사용)
+    const unsigned long KICK_MS = 80;
+    int turn = SPEED_ROTATE;          // 캘리브레이션과 동일 속도
+    if (now - phaseStartMs < KICK_MS) turn = SPEED_ROTATE ; // 시작 킥(상황에 따라 20~60 조절)
+
+    driveSetRaw(turn, -turn);
 
     if (now - phaseStartMs >= t90) {
       phase = 0;
       phaseStartMs = now;
-
-      // 직진 길이 증가 
       if (straightMul < 3) straightMul++;
     }
   }
