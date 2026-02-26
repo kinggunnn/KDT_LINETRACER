@@ -88,6 +88,24 @@ void setup(){
   pinMode(trigPin,OUTPUT);
   pinMode(echoPin,INPUT);
 
+<<<<<<< Updated upstream
+=======
+  // ---------------------------------------------------
+  // [LED, 부저 핀모드]
+  // ---------------------------------------------------
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);   // 주행 기본 ON
+
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
+
+  /* ---------------------------------------------------
+  // 2026.02.24
+  // [ 초기 서보모터 각도 고정 ]
+  * --------------------------------------------------- */
+  myServo.attach(2);   // 서보 연결 핀
+  myServo.write(90);   // 시작 각도 (0~180)
+>>>>>>> Stashed changes
   // ---------------------------------------------------
   // [모터 초기화]
   // - DriveControl.cpp의 driveInit()에서 모터 핀 OUTPUT 설정 + 정지 초기화
@@ -172,15 +190,94 @@ void loop(){
       driveLineFollow(ir, SPEED_BASE);
 
       // -----------------------------
-      // [도착 판정 ]
+      // [도착 판정 ] - 김유진 도착 판정 (2026.02.25)
        // -----------------------------
+      bool candidateArrival = isBlack(ir.L) && isWhite(ir.C) && isBlack(ir.R);
+
+      // 후보면 움직임 안정화 : 흔들림 줄여서 101 유지 도움
+      if (candidateArrival) {
+        driveSetRaw(120, 120);   // 실제로 굴러가는 최소값으로 조정 필요
+      }
+
       bool arrived = arrival.update(ir, LOOP_PERIOD_MS);
-      if(arrival.update(ir, LOOP_PERIOD_MS)){
+      if (arrived) {
         Serial.println("GO ENDING: ARRIVAL");
-        ending.start();                         // 김유진 - Ending 구현 (2026.02.23)
+        ending.start();
         state = FlowState::ENDING;
         break;
       }
+<<<<<<< Updated upstream
+=======
+      
+
+      if (now < crossLockUntil){
+        cnt111 = 0;
+        cnt011F = 0;
+      } else{
+        // 111 카운트
+        if (isBlack(ir.L) && isBlack(ir.C) && isBlack(ir.R)) cnt111++;
+        else cnt111 = 0;
+
+        // 011 + F 카운트
+        if (isBlack(ir.FC) && !isBlack(ir.L) && isBlack(ir.C) && isBlack(ir.R)) cnt011F++;
+        else cnt011F = 0;
+
+        // --------------------------------------
+        // [규칙 1]
+        // - 111이면 FC 상관없이 무조건 좌회전
+        // --------------------------------------
+        if (cnt111 >= HIT_111){ // 3번 이상 반복되면 실행
+          cnt111 = 0;
+          cnt011F = 0;
+          crossLockUntil = now + CROSS_LOCK_MS;
+
+          turnStart = now;
+          state = FlowState::CROSS_TURN_LEFT;
+
+          // 출력되는 값 확인용
+          Serial.print("DECIDE(111)->LEFT  L,C,R,FC=");
+          Serial.print(ir.L); Serial.print(",");
+          Serial.print(ir.C); Serial.print(",");
+          Serial.print(ir.R); Serial.print(",");
+          Serial.println(ir.FC);
+          break; // switch(state)에서 LINE_TRACE case 종료
+        }
+
+        // -------------------------------------------
+        // [규칙 2]
+        // - 011 + 전방감지(FC=1)이면 (ㅏ자형태) -> 직진
+        // -------------------------------------------
+        if (cnt011F >= HIT_011F) {
+          cnt111 = 0;
+          cnt011F = 0;
+          crossLockUntil = now + CROSS_LOCK_MS;
+
+          turnStart = now;
+          state = FlowState::CROSS_GO_STRAIGHT;
+
+          Serial.print("DECIDE(011F)->STRAIGHT  L,C,R,FC=");
+          Serial.print(ir.L); Serial.print(",");
+          Serial.print(ir.C); Serial.print(",");
+          Serial.print(ir.R); Serial.print(",");
+          Serial.println(ir.FC);
+
+          break; // switch(state)에서 LINE_TRACE case 종료
+        }
+      }
+
+      // -----------------------------
+      // [라인 이전값 저장]
+      // - 라인 유실이 아닐 때 이전 값 저장
+      // 김유진 (2026.02.25)
+      // -----------------------------
+      if (!candidateArrival && (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R))) {
+        driveLineFollow_detail(ir, SPEED_BASE); // 100
+
+        // 정상일 때만 prev_ir 갱신
+        prev_ir = ir;
+        hasPrevIr = true;
+      }
+>>>>>>> Stashed changes
 
       // -----------------------------
       // [라인 유실 판정]
@@ -333,12 +430,10 @@ void loop(){
     // // 김유진 - Ending 구현 (2026.02.23)
     // =================================================
     case FlowState::ENDING:
-      ending.update(LOOP_PERIOD_MS);
-
-      if(ending.isFinished()){
-        driveStop();   // 기존 함수 사용
-      }
-      break;
+    Serial.println("[DBG] IN ENDING");
+    ending.update(LOOP_PERIOD_MS);
+    if (ending.isFinished()) driveStop();
+    break;
   }
 
   // ---------------------------------------------------
