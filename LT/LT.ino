@@ -126,6 +126,24 @@ void setup() {
   * --------------------------------------------------- */
   myServo.attach(2);  // 서보 연결 핀
   myServo.write(90);  // 시작 각도 (0~180)
+<<<<<<< Updated upstream
+=======
+  // ---------------------------------------------------
+  // [LED, 부저 핀모드]
+  // ---------------------------------------------------
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);   // 주행 기본 ON
+
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
+
+  /* ---------------------------------------------------
+  // 2026.02.24
+  // [ 초기 서보모터 각도 고정 ]
+  * --------------------------------------------------- */
+  myServo.attach(2);   // 서보 연결 핀
+  myServo.write(90);   // 시작 각도 (0~180)
+>>>>>>> Stashed changes
   // ---------------------------------------------------
   // [모터 초기화]
   // - DriveControl.cpp의 driveInit()에서 모터 핀 OUTPUT 설정 + 정지 초기화
@@ -220,12 +238,39 @@ void loop() {
 
   case FlowState::LINE_TRACE: {
     // 1) 도착 판정
-    if (arrival.update(ir, LOOP_PERIOD_MS)) {
-      Serial.println("GO ENDING: ARRIVAL");
-      ending.start();
-      state = FlowState::ENDING;
-      break;
-    }
+   
+
+      // [도착 판정 ] - 김유진 도착 판정 (2026.02.25)
+       // -----------------------------
+      bool candidateArrival = isBlack(ir.L) && isWhite(ir.C) && isBlack(ir.R);
+
+      // 후보면 움직임 안정화 : 흔들림 줄여서 101 유지 도움
+      if (candidateArrival) {
+        driveSetRaw(120, 120);   // 실제로 굴러가는 최소값으로 조정 필요
+      }
+
+      bool arrived = arrival.update(ir, LOOP_PERIOD_MS);
+      if (arrived) {
+        Serial.println("GO ENDING: ARRIVAL");
+        ending.start();
+        state = FlowState::ENDING;
+        break;
+      
+      }
+
+      // -----------------------------
+      // [라인 이전값 저장]
+      // - 라인 유실이 아닐 때 이전 값 저장
+      // 김유진 (2026.02.25)
+      // -----------------------------
+      if (!candidateArrival && (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R))) {
+        driveLineFollow_detail(ir, SPEED_BASE); // 100
+
+        // 정상일 때만 prev_ir 갱신
+        prev_ir = ir;
+        hasPrevIr = true;
+      }
+>>>>>>> Stashed changes
 
     // 2) 교차로(111) → 좌회전 모드
     if (isBlack(ir.L) && isBlack(ir.C) && isBlack(ir.R)) {
@@ -364,6 +409,23 @@ void loop() {
     break;
   }
 }
+      if(!(isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R))){
+        state = FlowState::LINE_TRACE;
+      }
+      break;
+
+    // =================================================
+    // 7) ENDING
+    // - 도착/이탈 등 종료 상태
+    // - 모터 정지 유지
+    // // 김유진 - Ending 구현 (2026.02.23)
+    // =================================================
+    case FlowState::ENDING:
+    Serial.println("[DBG] IN ENDING");
+    ending.update(LOOP_PERIOD_MS);
+    if (ending.isFinished()) driveStop();
+    break;
+  }
 
   // ---------------------------------------------------
   // [디버깅: 상태 변경 순간만 출력]

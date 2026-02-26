@@ -166,8 +166,8 @@ void EndingController::update(unsigned long deltaMs) {
 			state = State::Done;
 			stageTime = 0;
 
-			// Done 진입 순간: LED ON 고정 + 부저 1회
-			setLedOn();
+			// Done 진입 순간: LED OFF 고정 + 부저 1회
+			setLedOff();
 			//beep();
 		
 		}
@@ -175,8 +175,8 @@ void EndingController::update(unsigned long deltaMs) {
 
 
 	case State::Done:
-		// 완료 표시: LED 항상 ON
-		setLedOn();
+		// 완료 표시: LED 항상 OFF
+		setLedOff();
 
 		// Done에서는 정지 유지
 		driveStop();
@@ -204,10 +204,10 @@ bool EndingController::isFinished() const {
 void EndingController::doReduce() {
 
 	if (stageTime < 200) {
-		driveSetRaw(80, 80);
+		driveSetRaw(120, 120);
 	}
 	else if (stageTime < 400) {
-		driveSetRaw(50, 50);
+		driveSetRaw(90, 90);
 	}
 	else {
 		driveStop();
@@ -232,11 +232,11 @@ void EndingController::setLedBlink(unsigned long deltaMs) {
 
 
 //====================================================
-// setLedOn()
-// - Done(완료) 표시: LED 항상 ON
+// setLedOff()
+// - Done(완료) 표시: LED 항상 OFF
 //====================================================
-void EndingController::setLedOn() {
-	ledOn = true;
+void EndingController::setLedOff() {
+	ledOn = false;
 	digitalWrite(LED_PIN, HIGH);
 }
 

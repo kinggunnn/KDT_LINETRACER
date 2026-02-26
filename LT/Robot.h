@@ -24,13 +24,14 @@
 #define L_Line A5
 #define C_Line A4
 #define R_Line A3
+<<<<<<< Updated upstream
+=======
 #define FC_Line A2
 
-#define LED_PIN 2
-#define BUZZER_PIN 7
+>>>>>>> Stashed changes
 
 // 김유진 - Ending 구현 (2026.02.22)
-#define LED_PIN 2
+#define LED_PIN 4
 #define BUZZER_PIN 7
 
 // ---------------- 라인 기준 ----------------

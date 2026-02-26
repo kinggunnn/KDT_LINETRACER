@@ -16,7 +16,7 @@ public:
 
 private:
 	void setLedBlink(unsigned long nowMs); 
-	void setLedOn();                      
+	void setLedOff();                      
 	void beep();                     
 	void doReduce();   
 	static void Play_MarioUW();                     
