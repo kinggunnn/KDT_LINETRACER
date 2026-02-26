@@ -317,7 +317,7 @@ long readUltrasonicCm(uint16_t timeoutUs){
 //   int R = readStableDigital(R_Line, fr, 3);    <<<C센서 안정화된 값
 // ====================================================
 
-int readStableDigital(uint8_t pin, StableDigitalFilter &f, uint8_t required /*=3*/) {
+int readStableDigital(uint8_t pin, StableDigitalFilter &f, uint8_t required = 3) {
   int raw = digitalRead(pin);
 
   if (raw == f.lastRaw) {
