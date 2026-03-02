@@ -72,7 +72,7 @@ static bool obstacleMode = false;           //현재 장애물 처리 루틴에 
 static unsigned long obstacleCooldown = 0;  //장애물 회피가 끝난 시각 기록.  ESCAPE 직후 같은 장애물 다시 감지 방지
 constexpr unsigned long COOLDOWN = 2000;    // 2초 재감지 방지
 static unsigned long escapeStart = 0;       //ESCAPE 상태가 시작된 시각(ms)을 기록
-static unsigned long waitStartTime = 0; //초기 waittime 대기 시간 
+static unsigned long waitStartTime = 0;     //초기 waittime 대기 시간
 
 
 // // 서범 : 0224
@@ -86,7 +86,7 @@ static unsigned long waitStartTime = 0; //초기 waittime 대기 시간
 // ROTATE_TIME    : 제자리 회전 탐색 "1바퀴"를 시간으로 근사(현재 2000ms 임시)
 // SPIRAL_MAX     : 스파이럴 탐색 최대 시간(10초). 초과하면 ENDING(정지)
 // STOP_TIME      : 장애물이 너무 가까울 때 정지 유지 시간(2초)
-constexpr unsigned long LOOP_PERIOD_MS = 40;  // ★ 루프 주기(고정 deltaMs로 쓸 값)
+constexpr unsigned long LOOP_PERIOD_MS = 35;  // ★ 루프 주기(고정 deltaMs로 쓸 값)
 constexpr unsigned long LOST_TRIGGER = 50;
 //constexpr unsigned long ROTATE_TIME    = 2000;   // ★ 1회전 = 2000ms (임시값, 조정 필요) ->getCalibrated180() *2로 리턴
 constexpr unsigned long SPIRAL_MAX = 10000;  // 10초 후 이탈
@@ -126,13 +126,12 @@ void setup() {
   * --------------------------------------------------- */
   myServo.attach(2);  // 서보 연결 핀
   myServo.write(90);  // 시작 각도 (0~180)
-<<<<<<< Updated upstream
-=======
+
   // ---------------------------------------------------
   // [LED, 부저 핀모드]
   // ---------------------------------------------------
   pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, HIGH);   // 주행 기본 ON
+  digitalWrite(LED_PIN, HIGH);  // 주행 기본 ON
 
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, LOW);
@@ -141,9 +140,9 @@ void setup() {
   // 2026.02.24
   // [ 초기 서보모터 각도 고정 ]
   * --------------------------------------------------- */
-  myServo.attach(2);   // 서보 연결 핀
-  myServo.write(90);   // 시작 각도 (0~180)
->>>>>>> Stashed changes
+  myServo.attach(2);  // 서보 연결 핀
+  myServo.write(90);  // 시작 각도 (0~180)
+
   // ---------------------------------------------------
   // [모터 초기화]
   // - DriveControl.cpp의 driveInit()에서 모터 핀 OUTPUT 설정 + 정지 초기화
@@ -210,209 +209,215 @@ void loop() {
   // ---------------------------------------------------
   switch (state) {
 
-  //WAIT_START 수정 : 0226 임진효
-  //setup이후 센서가 탈출하는 경우가 있음 이때 보정 후 주행
-  case FlowState::WAIT_START: {
+    //WAIT_START 수정 : 0226 임진효
+    //setup이후 센서가 탈출하는 경우가 있음 이때 보정 후 주행
+    case FlowState::WAIT_START:
+      {
 
-    // 처음 진입했을 때 시간 기록
-    if (waitStartTime == 0)
-      waitStartTime = now;
+        // 처음 진입했을 때 시간 기록
+        if (waitStartTime == 0)
+          waitStartTime = now;
 
-    // 중앙 센서가 검정이면 바로 출발
-    if (isBlack(ir.C)) {
-      waitStartTime = 0;   // 다음에 다시 쓸 수 있도록 초기화
-      state = FlowState::LINE_TRACE;
-      break;
-    }
+        // 중앙 센서가 검정이면 바로 출발
+        if (isBlack(ir.C)) {
+          waitStartTime = 0;  // 다음에 다시 쓸 수 있도록 초기화
+          state = FlowState::LINE_TRACE;
+          break;
+        }
 
-    // 100ms 동안 검정 못 보면 회전 탐색으로 전환
-    if (now - waitStartTime >= 100) {
-      waitStartTime = 0;
-      rotateStart = now;      // SEARCH_ROTATE용 초기화
-      rotateCount = 0;
-      state = FlowState::SEARCH_ROTATE;
-    }
+        // 100ms 동안 검정 못 보면 회전 탐색으로 전환
+        if (now - waitStartTime >= 100) {
+          waitStartTime = 0;
+          rotateStart = now;  // SEARCH_ROTATE용 초기화
+          rotateCount = 0;
+          state = FlowState::SEARCH_ROTATE;
+        }
 
-    break;
-  }
-
-  case FlowState::LINE_TRACE: {
-    // 1) 도착 판정
-   
-
-      // [도착 판정 ] - 김유진 도착 판정 (2026.02.25)
-       // -----------------------------
-      bool candidateArrival = isBlack(ir.L) && isWhite(ir.C) && isBlack(ir.R);
-
-      // 후보면 움직임 안정화 : 흔들림 줄여서 101 유지 도움
-      if (candidateArrival) {
-        driveSetRaw(120, 120);   // 실제로 굴러가는 최소값으로 조정 필요
-      }
-
-      bool arrived = arrival.update(ir, LOOP_PERIOD_MS);
-      if (arrived) {
-        Serial.println("GO ENDING: ARRIVAL");
-        ending.start();
-        state = FlowState::ENDING;
-        break;
-      
-      }
-
-      // -----------------------------
-      // [라인 이전값 저장]
-      // - 라인 유실이 아닐 때 이전 값 저장
-      // 김유진 (2026.02.25)
-      // -----------------------------
-      if (!candidateArrival && (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R))) {
-        driveLineFollow_detail(ir, SPEED_BASE); // 100
-
-        // 정상일 때만 prev_ir 갱신
-        prev_ir = ir;
-        hasPrevIr = true;
-      }
->>>>>>> Stashed changes
-
-    // 2) 교차로(111) → 좌회전 모드
-    if (isBlack(ir.L) && isBlack(ir.C) && isBlack(ir.R)) {
-      state = FlowState::CROSS_TURN_LEFT;
-      break;
-    }
-
-    // 3) 라인 추적 (라인 하나라도 있으면 주행)
-    if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
-      driveLineFollow_detail(ir, SPEED_BASE);
-      prev_ir = ir;
-      hasPrevIr = true;
-    }
-
-    // 4) 라인 유실 판정 (000이 200ms 지속되면 탐색)
-    if (isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R)) {
-      if (lostStart == 0) lostStart = now;
-
-      if (now - lostStart >= LOST_TRIGGER) {
-        rotateCount = 0;
-        rotateStart = now;
-        state = FlowState::SEARCH_ROTATE;
         break;
       }
-    } else {
-      lostStart = 0;
-    }
 
-    // 5) 장애물 판정
-    if (!obstacleMode &&
-        isObstacleStable(dist) &&
-        (now - obstacleCooldown > COOLDOWN)) {
-      obstacleMode = true;
-      state = FlowState::OBSTACLE;
-      break;
-    }
+    case FlowState::LINE_TRACE:
+      {
+        // 1) 도착 판정
 
-    break;
-  }
 
-  case FlowState::CROSS_TURN_LEFT: {
-    // 좌회전(제자리 회전)
-    driveSetRaw(SPEED_BASE, -SPEED_BASE);
+        // [도착 판정 ] - 김유진 도착 판정 (2026.02.25)
+        // -----------------------------
+        bool candidateArrival = isBlack(ir.L) && isWhite(ir.C) && isBlack(ir.R);
 
-    // 라인 재획득하면 복귀
-    if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
-      state = FlowState::LINE_TRACE;
-    }
+        // 후보면 움직임 안정화 : 흔들림 줄여서 101 유지 도움
+        if (candidateArrival) {
+          driveSetRaw(120, 120);  // 실제로 굴러가는 최소값으로 조정 필요
+        }
 
-    break; // ★ 필수
-  }
+        bool arrived = arrival.update(ir, LOOP_PERIOD_MS);
+        if (arrived) {
+          Serial.println("GO ENDING: ARRIVAL");
+          ending.start();
+          state = FlowState::ENDING;
+          break;
+        }
 
-  case FlowState::SEARCH_ROTATE: {
-    driveSetRaw(SPEED_ROTATE, -SPEED_ROTATE);
+        // -----------------------------
+        // [라인 이전값 저장]
+        // - 라인 유실이 아닐 때 이전 값 저장
+        // 김유진 (2026.02.25)
+        // -----------------------------
+        if (!candidateArrival && (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R))) {
+          driveLineFollow_detail(ir, SPEED_BASE);  // 100
 
-    // "1바퀴" 시간 기준 카운트 (현재: 360도 = 2*180)
-    if (now - rotateStart >= 2 * getCalibrated180()) {
-      rotateCount++;
-      rotateStart = now;
-    }
+          // 정상일 때만 prev_ir 갱신
+          prev_ir = ir;
+          hasPrevIr = true;
+        }
 
-    // 라인 재획득 시 복귀
-    if (!(isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R))) {
-      state = FlowState::LINE_TRACE;
-      break;
-    }
+        // 2) 교차로(111) → 좌회전 모드
+        if (isBlack(ir.L) && isBlack(ir.C) && isBlack(ir.R)) {
+          state = FlowState::CROSS_TURN_LEFT;
+          break;
+        }
 
-    // 2회전 초과 → 사각 탐색(SEARCH_SPIRAL)
-    if (rotateCount > 2) {
-      spiralStart = now;
-      state = FlowState::SEARCH_SPIRAL;
-      break;
-    }
+        // 3) 라인 추적 (라인 하나라도 있으면 주행)
+        if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
+          driveLineFollow_detail(ir, SPEED_BASE);
+          prev_ir = ir;
+          hasPrevIr = true;
+        }
 
-    break;
-  }
+        // 4) 라인 유실 판정 (000이 200ms 지속되면 탐색)
+        if (isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R)) {
+          if (lostStart == 0) lostStart = now;
 
-  case FlowState::SEARCH_SPIRAL: {
-    square_search(ir.L, ir.C, ir.R);
+          if (now - lostStart >= LOST_TRIGGER) {
+            rotateCount = 0;
+            rotateStart = now;
+            state = FlowState::SEARCH_ROTATE;
+            break;
+          }
+        } else {
+          lostStart = 0;
+        }
 
-    // 라인 재획득 시 복귀
-    if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
-      state = FlowState::LINE_TRACE;
-      break;
-    }
+        // 5) 장애물 판정
+        if (!obstacleMode && isObstacleStable(dist) && (now - obstacleCooldown > COOLDOWN)) {
+          obstacleMode = true;
+          state = FlowState::OBSTACLE;
+          break;
+        }
 
-    // (원하면 시간 제한도 다시 넣어라)
-    // if (now - spiralStart >= SPIRAL_MAX) state = FlowState::ENDING;
-
-    break;
-  }
-
-  case FlowState::OBSTACLE: {
-    // 장애물 해제
-    if (dist > 30) {
-      obstacleMode = false;
-      state = FlowState::LINE_TRACE;
-      break;
-    }
-
-    // 너무 가까우면 정지
-    if (dist <= 10) {
-      driveStop();
-      stopStart = now;
-      state = FlowState::STOP_HOLD;
-      break;
-    }
-
-    // 그 외 감속 주행
-    driveLineFollow_detail(ir, SPEED_SLOW);
-    break;
-  }
-
-  case FlowState::STOP_HOLD: {
-    if (now - stopStart >= STOP_TIME) {
-      escapeStart = now;
-      state = FlowState::ESCAPE;
-    }
-    break;
-  }
-
-  case FlowState::ESCAPE: {
-    driveSetRaw(SPEED_ROTATE, -SPEED_ROTATE);
-
-    if ((now - escapeStart > 800) && isBlack(ir.C)) {
-      obstacleMode = false;
-      obstacleCooldown = now;
-      state = FlowState::LINE_TRACE;
-    }
-    break;
-  }
-
-  case FlowState::ENDING: {
-    ending.update(LOOP_PERIOD_MS);
-    if (ending.isFinished()) driveStop();
-    break;
-  }
-}
-      if(!(isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R))){
-        state = FlowState::LINE_TRACE;
+        break;
       }
-      break;
+
+    case FlowState::CROSS_TURN_LEFT:
+      {
+        // 좌회전(제자리 회전)
+        driveSetRaw(SPEED_BASE+40, -SPEED_BASE-40);
+
+        // 라인 재획득하면 복귀
+        if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
+          state = FlowState::LINE_TRACE;
+        }
+
+        break;  // ★ 필수
+      }
+
+    case FlowState::SEARCH_ROTATE:
+      {
+        driveSetRaw(SPEED_ROTATE, -SPEED_ROTATE);
+
+        // "1바퀴" 시간 기준 카운트 (현재: 360도 = 2*180)
+        if (now - rotateStart >= 2 * getCalibrated180()) {
+          rotateCount++;
+          rotateStart = now;
+        }
+
+        // 라인 재획득 시 복귀
+        if (!(isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R))) {
+          state = FlowState::LINE_TRACE;
+          break;
+        }
+
+        // 2회전 초과 → 사각 탐색(SEARCH_SPIRAL)
+        if (rotateCount > 2) {
+          spiralStart = now;
+          state = FlowState::SEARCH_SPIRAL;
+          break;
+        }
+
+        break;
+      }
+
+    case FlowState::SEARCH_SPIRAL:
+      {
+        square_search(ir.L, ir.C, ir.R);
+
+        // 라인 재획득 시 복귀
+        if (isBlack(ir.L) || isBlack(ir.C) || isBlack(ir.R)) {
+          state = FlowState::LINE_TRACE;
+          break;
+        }
+
+        // (원하면 시간 제한도 다시 넣어라)
+        // if (now - spiralStart >= SPIRAL_MAX) state = FlowState::ENDING;
+
+        break;
+      }
+
+    case FlowState::OBSTACLE:
+      {
+        // 장애물 해제
+        if (dist > 30) {
+          obstacleMode = false;
+          state = FlowState::LINE_TRACE;
+          break;
+        }
+
+        // 너무 가까우면 정지
+        if (dist <= 10) {
+          driveStop();
+          stopStart = now;
+          state = FlowState::STOP_HOLD;
+          break;
+        }
+
+        // 그 외 감속 주행
+        driveLineFollow_detail(ir, SPEED_SLOW);
+        break;
+      }
+
+    case FlowState::STOP_HOLD:
+      {
+        if (now - stopStart >= STOP_TIME) {
+          escapeStart = now;
+          state = FlowState::ESCAPE;
+        }
+        break;
+      }
+
+    case FlowState::ESCAPE:
+      {
+        driveSetRaw(SPEED_ROTATE, -SPEED_ROTATE);
+
+        if ((now - escapeStart > 800) && isBlack(ir.C)) {
+          obstacleMode = false;
+          obstacleCooldown = now;
+          state = FlowState::LINE_TRACE;
+        }
+        break;
+      }
+
+    //   case FlowState::ENDING:
+    //     {
+    //       ending.update(LOOP_PERIOD_MS);
+    //       if (ending.isFinished()) driveStop();
+    //       break;
+    //     }
+    // }
+    // if (!(isWhite(ir.L) && isWhite(ir.C) && isWhite(ir.R))) {
+    //   state = FlowState::LINE_TRACE;
+    //   break;
+    // }
+
 
     // =================================================
     // 7) ENDING
@@ -421,10 +426,10 @@ void loop() {
     // // 김유진 - Ending 구현 (2026.02.23)
     // =================================================
     case FlowState::ENDING:
-    Serial.println("[DBG] IN ENDING");
-    ending.update(LOOP_PERIOD_MS);
-    if (ending.isFinished()) driveStop();
-    break;
+      Serial.println("[DBG] IN ENDING");
+      ending.update(LOOP_PERIOD_MS);
+      if (ending.isFinished()) driveStop();
+      break;
   }
 
   // ---------------------------------------------------

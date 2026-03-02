@@ -24,11 +24,8 @@
 #define L_Line A5
 #define C_Line A4
 #define R_Line A3
-<<<<<<< Updated upstream
-=======
 #define FC_Line A2
 
->>>>>>> Stashed changes
 
 // 김유진 - Ending 구현 (2026.02.22)
 #define LED_PIN 4
@@ -51,9 +48,9 @@ static IRSample prev_ir;      // 마지막 정상 IR
 static bool hasPrevIr = false;
 
 // ---------------- 속도 상수 ----------------
-constexpr uint8_t SPEED_BASE = 110; // 빠때리풀충  : 100 좀썼다 110
-constexpr uint8_t SPEED_SLOW = 80;
-constexpr uint8_t SPEED_ROTATE = 110; //풀충 :115 
+constexpr uint8_t SPEED_BASE = 150; // 빠때리풀충  : 100 좀썼다 110
+constexpr uint8_t SPEED_SLOW = 100;
+constexpr uint8_t SPEED_ROTATE = 160; //풀충 :115 
 
 // ---------------- 상태 ----------------
 enum class FlowState{

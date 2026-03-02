@@ -194,19 +194,19 @@ void driveLineFollow_detail(const IRSample& ir, uint8_t baseSpeed) { // &주소�
 
   // 약한 좌회전 : 110
   else if (Lb && Cb && !Rb) {
-    driveSetRaw(baseSpeed+23, 0);
+    driveSetRaw(-baseSpeed+20, baseSpeed+50);
   }
   // 약한 우회전 : 011
   else if (!Lb && Cb && Rb) {
-    driveSetRaw(0, baseSpeed+23);
+    driveSetRaw(baseSpeed+50,-baseSpeed+20);
   }
   // 강한 좌회전 : 100
   else if (Lb && !Cb && !Rb) {
-    driveSetRaw(baseSpeed, -baseSpeed);
+    driveSetRaw(baseSpeed+50, -baseSpeed);
   }
   // 강한 우회전 : 001
   else if (!Lb && !Cb && Rb) {
-    driveSetRaw(-baseSpeed, baseSpeed);
+    driveSetRaw(-baseSpeed, baseSpeed+50);
   }
   ///000은 main에서 처리
   // else if(!Lb && !Cb && !Rb){
